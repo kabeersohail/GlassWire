@@ -7,6 +7,8 @@ import android.app.usage.NetworkStats
 import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
@@ -20,6 +22,8 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import com.example.glasswire.databinding.ActivityMainBinding
+import com.example.glasswire.models.AppDataUsageModel
+import com.example.glasswire.models.Duration
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,9 +39,9 @@ import java.util.*
  *
  * 1. https://medium.com/@quiro91/build-a-data-usage-manager-in-android-e7991cfe7fe4
  */
-class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity() {
 
-    lateinit var binding: ActivityMainBinding
+    private lateinit var binding: ActivityMainBinding
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,23 +55,25 @@ class MainActivity : AppCompatActivity() {
                 handlePermission(it)
                 return@setOnClickListener
             }
-
             CoroutineScope(Dispatchers.IO).launch {
 
-                val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                val end = ZonedDateTime.now().toInstant().toEpochMilli()
+                val (start, end) = today()
 
-                val mData = getAppWifiDataUsage(
-                    10459,
-                    start,
-                    end
-                )
-
-                val formattedData = formatData(mData[0], mData[1])
-
-                Log.d("SOHAIL BRO", "${formattedData.toList()}")
+                getAllInstalledAppsData().forEach { app ->
+                    returnFormattedData(app.uid, start, end)
+                }
             }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun today(): Duration = Duration(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), ZonedDateTime.now().toInstant().toEpochMilli())
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long) {
+        val mData = getAppWifiDataUsage(uid, startTime, endTime)
+        val formattedData = formatData(mData[0], mData[1])
+        Log.d("SOHAIL BRO", "${formattedData.toList()} $uid")
     }
 
     /**
@@ -87,8 +93,8 @@ class MainActivity : AppCompatActivity() {
         val sentMB: Float = sentBytes / 1024f
         val receivedMB: Float = receivedBytes / 1024f
 
-        var sentData = ""
-        var receivedData = ""
+        val sentData: String
+        val receivedData: String
         val totalData: String
         if (totalMB > 1024) {
             totalGB = totalMB / 1024f
@@ -144,12 +150,9 @@ class MainActivity : AppCompatActivity() {
         return arrayOf(sent, received, total)
     }
 
-    /**
-     * Link to address deprecation
-     *
-     * 1. https://stackoverflow.com/questions/66896154/getinstallerpackagenamestring-string-is-deprecated-deprecated-in-java
-     */
-    private fun uidOf(mPackage: String) = packageManager.getApplicationInfo(mPackage, 0).uid
+    private fun getAllInstalledAppsData(): List<AppDataUsageModel> = packageManager.getInstalledApplications(PackageManager.GET_META_DATA).map { app ->
+        AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
+    }
 
     /**
      * Link describing the warning
@@ -170,7 +173,7 @@ class MainActivity : AppCompatActivity() {
     private fun handlePermission(view: View) {
         val snack = Snackbar.make(view,"App needs data usage access",Snackbar.LENGTH_LONG)
         snack.setAction("Grant") {
-            startActivity(Intent(ACTION_USAGE_ACCESS_SETTINGS));
+            startActivity(Intent(ACTION_USAGE_ACCESS_SETTINGS))
         }
         snack.show()
     }

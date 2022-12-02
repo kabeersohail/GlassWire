@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">GlassWire</string>
+    <string name="actual_action">Actual Action</string>
 </resources>

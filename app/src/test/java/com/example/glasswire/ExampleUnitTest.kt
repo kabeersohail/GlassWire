@@ -78,6 +78,27 @@ class ExampleUnitTest {
         assertEquals(1670005799999, endTime)
     }
 
+    @Test
+    fun `last month start date and end date`() {
+        val aCalendar = Calendar.getInstance()
+
+        aCalendar.add(Calendar.MONTH, -1)
+
+        aCalendar[Calendar.DATE] = 1
+
+        val firstDateOfPreviousMonth = aCalendar.time
+
+        aCalendar[Calendar.DATE] = aCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        val lastDateOfPreviousMonth = aCalendar.time
+
+        val startTime = atStartOfDay(firstDateOfPreviousMonth)
+        val endTime = atEndOfDay(lastDateOfPreviousMonth)
+
+        assertEquals(1667241000000, startTime)
+        assertEquals(1669832999999, endTime)
+    }
+
     fun getYesterdayDate() {
         val dateFormat: DateFormat = SimpleDateFormat("yyyy-MM-dd")
         val cal: Calendar = Calendar.getInstance()
@@ -94,13 +115,13 @@ class ExampleUnitTest {
 
 
 
-    fun atStartOfDay(date: Date): Long? {
+    private fun atStartOfDay(date: Date): Long? {
         val localDateTime = dateToLocalDateTime(date)
         val startOfDay = localDateTime.with(LocalTime.MIN)
         return localDateTimeToDate(startOfDay)?.toInstant()?.toEpochMilli()
     }
 
-    fun atEndOfDay(date: Date): Long? {
+    private fun atEndOfDay(date: Date): Long? {
         val localDateTime = dateToLocalDateTime(date)
         val endOfDay = localDateTime.with(LocalTime.MAX)
         return localDateTimeToDate(endOfDay)?.toInstant()?.toEpochMilli()

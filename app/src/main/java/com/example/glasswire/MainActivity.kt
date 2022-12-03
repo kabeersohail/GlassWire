@@ -28,9 +28,7 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.text.DateFormat
 import java.text.ParseException
-import java.text.SimpleDateFormat
 import java.time.*
 import java.util.*
 
@@ -57,7 +55,7 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = yesterday()
+                val (start, end) = thisYear()
 
                 getAllInstalledAppsData().forEach { app ->
                     returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_WIFI)
@@ -73,7 +71,7 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = yesterday()
+                val (start, end) = thisYear()
 
                 getAllInstalledAppsData().forEach { app ->
                     returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_MOBILE)
@@ -99,6 +97,40 @@ open class MainActivity : AppCompatActivity() {
         val startTime: Long = atStartOfDay(c.time) ?: throw Exception()
         val endTime: Long = atEndOfDay(c.time) ?: throw Exception()
 
+        return Duration(startTime, endTime)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun thisMonth(): Duration {
+        val c = Calendar.getInstance()
+        c[Calendar.DAY_OF_MONTH] = 1
+        val startTime: Long = atStartOfDay(c.time) ?: throw Exception()
+        val endTime: Long = ZonedDateTime.now().toInstant().toEpochMilli()
+
+        return Duration(startTime, endTime)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun lastMonth(): Duration {
+        val aCalendar = Calendar.getInstance()
+        aCalendar.add(Calendar.MONTH, -1)
+        aCalendar[Calendar.DATE] = 1
+        val firstDateOfPreviousMonth = aCalendar.time
+        aCalendar[Calendar.DATE] = aCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val lastDateOfPreviousMonth = aCalendar.time
+
+        val startTime = atStartOfDay(firstDateOfPreviousMonth) ?: throw Exception()
+        val endTime = atEndOfDay(lastDateOfPreviousMonth) ?: throw Exception()
+
+        return Duration(startTime, endTime)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun thisYear(): Duration {
+        val c = Calendar.getInstance()
+        c[Calendar.DAY_OF_YEAR] = 1
+        val startTime: Long = atStartOfDay(c.time) ?: throw Exception()
+        val endTime: Long = ZonedDateTime.now().toInstant().toEpochMilli() ?: throw Exception()
         return Duration(startTime, endTime)
     }
 

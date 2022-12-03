@@ -28,10 +28,10 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.DateFormat
 import java.text.ParseException
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import java.text.SimpleDateFormat
+import java.time.*
 import java.util.*
 
 /**
@@ -57,7 +57,7 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = today()
+                val (start, end) = yesterday()
 
                 getAllInstalledAppsData().forEach { app ->
                     returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_WIFI)
@@ -73,7 +73,7 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = today()
+                val (start, end) = yesterday()
 
                 getAllInstalledAppsData().forEach { app ->
                     returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_MOBILE)
@@ -83,7 +83,48 @@ open class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun today(): Duration = Duration(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), ZonedDateTime.now().toInstant().toEpochMilli())
+    private fun today(): Duration = Duration(
+        start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        end = ZonedDateTime.now().toInstant().toEpochMilli()
+    )
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun yesterday(): Duration {
+        val date: Date = Date()
+        val c = Calendar.getInstance()
+        c.time = date
+        c.add(Calendar.DATE, -1)
+        c.time
+
+        val startTime: Long = atStartOfDay(c.time) ?: throw Exception()
+        val endTime: Long = atEndOfDay(c.time) ?: throw Exception()
+
+        return Duration(startTime, endTime)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun atStartOfDay(date: Date): Long? {
+        val localDateTime = dateToLocalDateTime(date)
+        val startOfDay = localDateTime.with(LocalTime.MIN)
+        return localDateTimeToDate(startOfDay)?.toInstant()?.toEpochMilli()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun atEndOfDay(date: Date): Long? {
+        val localDateTime = dateToLocalDateTime(date)
+        val endOfDay = localDateTime.with(LocalTime.MAX)
+        return localDateTimeToDate(endOfDay)?.toInstant()?.toEpochMilli()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun dateToLocalDateTime(date: Date): LocalDateTime {
+        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun localDateTimeToDate(localDateTime: LocalDateTime): Date? {
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int) {

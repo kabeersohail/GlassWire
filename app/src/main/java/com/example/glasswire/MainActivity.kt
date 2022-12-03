@@ -1,5 +1,6 @@
 package com.example.glasswire
 
+import android.Manifest.permission.READ_PHONE_STATE
 import android.app.AppOpsManager
 import android.app.AppOpsManager.MODE_ALLOWED
 import android.app.AppOpsManager.OPSTR_GET_USAGE_STATS
@@ -9,7 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
 import android.os.Process.myUid
@@ -18,12 +19,15 @@ import android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.example.glasswire.databinding.ActivityMainBinding
 import com.example.glasswire.models.AppDataUsageModel
 import com.example.glasswire.models.Duration
+import com.example.glasswire.states.TimeFrame
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +35,15 @@ import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.time.*
 import java.util.*
+
+/**
+ * Useful stack over flow links
+ *
+ * 1. https://stackoverflow.com/questions/36702621/getting-mobile-data-usage-history-using-networkstatsmanager (RnD)
+ * 2. https://www.programcreek.com/java-api-examples/?api=android.app.usage.NetworkStatsManager (RnD)
+ * 3.
+ *
+ */
 
 /**
  * Article used to build this app
@@ -41,11 +54,34 @@ open class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    /**
+     * Room for improvements
+     *
+     * 1. https://developer.android.com/training/permissions/requesting.html
+     */
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                Log.d("TAG", "Granted")
+            } else {
+                // Explain to the user that the feature is unavailable because the
+                // feature requires a permission that the user has denied. At the
+                // same time, respect the user's decision. Don't link to system
+                // settings in an effort to convince the user to change their
+                // decision.
+                Log.d("TAG", "Granted")
+            }
+        }
+
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+
+        val selectedTimeFrame: TimeFrame = TimeFrame.Today
 
         binding.getWifiUsage.setOnClickListener {
 
@@ -53,13 +89,38 @@ open class MainActivity : AppCompatActivity() {
                 handlePermission(it)
                 return@setOnClickListener
             }
-            CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = thisYear()
+            /**
+             * Room for improvements
+             *
+             * 1. https://developer.android.com/training/permissions/requesting.html
+             */
+            when (PackageManager.PERMISSION_GRANTED) {
+                ContextCompat.checkSelfPermission(this, READ_PHONE_STATE) -> {
+                    CoroutineScope(Dispatchers.IO).launch {
 
-                getAllInstalledAppsData().forEach { app ->
-                    returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_WIFI)
+                        val (start, end) = when(selectedTimeFrame) {
+                            TimeFrame.LastMonth -> lastMonth()
+                            TimeFrame.ThisMonth -> thisMonth()
+                            TimeFrame.Today -> today()
+                            TimeFrame.Yesterday -> yesterday()
+                            TimeFrame.ThisYear -> thisYear()
+                        }
+
+                        getAllInstalledAppsData().forEach { app ->
+                            /**
+                             * Deprecation useful links
+                             *
+                             * TYPE_WIFI is deprecated so use NetworkCapabilities.TRANSPORT_WIFI
+                             *
+                             * 1. https://stackoverflow.com/questions/52816443/what-is-alternative-to-connectivitymanager-type-wifi-deprecated-in-android-p-api
+                             * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
+                             */
+                            returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_WIFI)
+                        }
+                    }
                 }
+                else -> requestPermissionLauncher.launch(READ_PHONE_STATE)
             }
         }
 
@@ -71,24 +132,28 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = thisYear()
+                val (start, end) = when(selectedTimeFrame) {
+                    TimeFrame.LastMonth -> lastMonth()
+                    TimeFrame.ThisMonth -> thisMonth()
+                    TimeFrame.Today -> today()
+                    TimeFrame.Yesterday -> yesterday()
+                    TimeFrame.ThisYear -> thisYear()
+                }
 
                 getAllInstalledAppsData().forEach { app ->
-                    returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_MOBILE)
+                    returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
                 }
             }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun today(): Duration = Duration(
         start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
         end = ZonedDateTime.now().toInstant().toEpochMilli()
     )
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun yesterday(): Duration {
-        val date: Date = Date()
+        val date = Date()
         val c = Calendar.getInstance()
         c.time = date
         c.add(Calendar.DATE, -1)
@@ -100,7 +165,6 @@ open class MainActivity : AppCompatActivity() {
         return Duration(startTime, endTime)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun thisMonth(): Duration {
         val c = Calendar.getInstance()
         c[Calendar.DAY_OF_MONTH] = 1
@@ -110,7 +174,6 @@ open class MainActivity : AppCompatActivity() {
         return Duration(startTime, endTime)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun lastMonth(): Duration {
         val aCalendar = Calendar.getInstance()
         aCalendar.add(Calendar.MONTH, -1)
@@ -125,42 +188,37 @@ open class MainActivity : AppCompatActivity() {
         return Duration(startTime, endTime)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun thisYear(): Duration {
         val c = Calendar.getInstance()
         c[Calendar.DAY_OF_YEAR] = 1
         val startTime: Long = atStartOfDay(c.time) ?: throw Exception()
-        val endTime: Long = ZonedDateTime.now().toInstant().toEpochMilli() ?: throw Exception()
+        val endTime: Long = ZonedDateTime.now().toInstant().toEpochMilli()
         return Duration(startTime, endTime)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun atStartOfDay(date: Date): Long? {
+    private fun atStartOfDay(date: Date): Long? {
         val localDateTime = dateToLocalDateTime(date)
         val startOfDay = localDateTime.with(LocalTime.MIN)
         return localDateTimeToDate(startOfDay)?.toInstant()?.toEpochMilli()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun atEndOfDay(date: Date): Long? {
+    private fun atEndOfDay(date: Date): Long? {
         val localDateTime = dateToLocalDateTime(date)
         val endOfDay = localDateTime.with(LocalTime.MAX)
         return localDateTimeToDate(endOfDay)?.toInstant()?.toEpochMilli()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun dateToLocalDateTime(date: Date): LocalDateTime {
         return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun localDateTimeToDate(localDateTime: LocalDateTime): Date? {
         return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int) {
-        val mData = if(type == ConnectivityManager.TYPE_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
+        val mData = if(type == NetworkCapabilities.TRANSPORT_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
         val formattedData = formatData(mData[0], mData[1])
         Log.d("SOHAIL BRO", "${formattedData.toList()} $uid")
     }
@@ -208,8 +266,8 @@ open class MainActivity : AppCompatActivity() {
         return arrayOf(sentData, receivedData, totalData)
     }
 
-    @Throws(RemoteException::class, ParseException::class)
     @RequiresApi(Build.VERSION_CODES.M)
+    @Throws(RemoteException::class, ParseException::class)
     private fun getAppWifiDataUsage(uid: Int, startTime: Long, endTime: Long): Array<Long> {
 
         var sent = 0L
@@ -218,7 +276,7 @@ open class MainActivity : AppCompatActivity() {
         val networkStatsManager: NetworkStatsManager =
             applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats = networkStatsManager.querySummary(
-            ConnectivityManager.TYPE_WIFI,
+            NetworkCapabilities.TRANSPORT_WIFI,
             getSubscriberID(),
             startTime,
             endTime
@@ -239,8 +297,8 @@ open class MainActivity : AppCompatActivity() {
         return arrayOf(sent, received, total)
     }
 
-    @Throws(RemoteException::class, ParseException::class)
     @RequiresApi(Build.VERSION_CODES.M)
+    @Throws(RemoteException::class, ParseException::class)
     private fun getAppMobileDataUsage(uid: Int, startTime: Long, endTime: Long): Array<Long> {
 
         var sent = 0L
@@ -249,7 +307,7 @@ open class MainActivity : AppCompatActivity() {
         val networkStatsManager: NetworkStatsManager =
             applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats = networkStatsManager.querySummary(
-            ConnectivityManager.TYPE_MOBILE,
+            NetworkCapabilities.TRANSPORT_CELLULAR,
             getSubscriberID(),
             startTime,
             endTime
@@ -271,6 +329,20 @@ open class MainActivity : AppCompatActivity() {
     }
 
     private fun getAllInstalledAppsData(): List<AppDataUsageModel> = packageManager.getInstalledApplications(PackageManager.GET_META_DATA).map { app ->
+        AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
+    }
+
+    /**
+     * Info for deprecation
+     *
+     * 1. https://stackoverflow.com/questions/62834292/list-of-apps-doesnt-populate-on-android-11-using-packagemanager
+     * 2. https://stackoverflow.com/questions/17504169/how-to-get-installed-applications-in-android-and-no-system-apps
+     * 3. https://developer.android.com/reference/android/content/pm/PackageManager#getInstalledApplications(android.content.pm.PackageManager.ApplicationInfoFlags)
+     * 4. https://developer.android.com/training/package-visibility
+     *
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun getAllInstalledAppsDataForAPI33(): List<AppDataUsageModel> = packageManager.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())).map { app ->
         AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
     }
 

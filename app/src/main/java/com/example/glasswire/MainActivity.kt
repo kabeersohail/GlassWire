@@ -49,7 +49,7 @@ open class MainActivity : AppCompatActivity() {
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
-        binding.actualAction.setOnClickListener {
+        binding.getWifiUsage.setOnClickListener {
 
             if(!checkForPermission(this)) {
                 handlePermission(it)
@@ -60,7 +60,23 @@ open class MainActivity : AppCompatActivity() {
                 val (start, end) = today()
 
                 getAllInstalledAppsData().forEach { app ->
-                    returnFormattedData(app.uid, start, end)
+                    returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_WIFI)
+                }
+            }
+        }
+
+        binding.mobileDataUsageOfApps.setOnClickListener {
+
+            if(!checkForPermission(this)) {
+                handlePermission(it)
+                return@setOnClickListener
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+
+                val (start, end) = today()
+
+                getAllInstalledAppsData().forEach { app ->
+                    returnFormattedData(app.uid, start, end, ConnectivityManager.TYPE_MOBILE)
                 }
             }
         }
@@ -70,8 +86,8 @@ open class MainActivity : AppCompatActivity() {
     private fun today(): Duration = Duration(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), ZonedDateTime.now().toInstant().toEpochMilli())
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long) {
-        val mData = getAppWifiDataUsage(uid, startTime, endTime)
+    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int) {
+        val mData = if(type == ConnectivityManager.TYPE_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
         val formattedData = formatData(mData[0], mData[1])
         Log.d("SOHAIL BRO", "${formattedData.toList()} $uid")
     }
@@ -130,6 +146,37 @@ open class MainActivity : AppCompatActivity() {
             applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
         val networkStats: NetworkStats = networkStatsManager.querySummary(
             ConnectivityManager.TYPE_WIFI,
+            getSubscriberID(),
+            startTime,
+            endTime
+        )
+
+        do {
+            val bucket = NetworkStats.Bucket()
+            networkStats.getNextBucket(bucket)
+            if (bucket.uid == uid) {
+                sent += bucket.txBytes
+                received += bucket.rxBytes
+            }
+        } while (networkStats.hasNextBucket())
+
+        val total: Long = sent + received
+        networkStats.close()
+
+        return arrayOf(sent, received, total)
+    }
+
+    @Throws(RemoteException::class, ParseException::class)
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun getAppMobileDataUsage(uid: Int, startTime: Long, endTime: Long): Array<Long> {
+
+        var sent = 0L
+        var received = 0L
+
+        val networkStatsManager: NetworkStatsManager =
+            applicationContext.getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val networkStats: NetworkStats = networkStatsManager.querySummary(
+            ConnectivityManager.TYPE_MOBILE,
             getSubscriberID(),
             startTime,
             endTime

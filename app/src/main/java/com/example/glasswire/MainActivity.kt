@@ -148,6 +148,14 @@ open class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        binding.wifiUsage.setOnClickListener {
+            val (sent, received, _) = getDeviceWifiDataUsageForToday()
+
+            val (sentFormatted, receivedFormatted, totalFormatted) = formatData(sent, received)
+
+            Log.d("SOHAIL BRO", "$sentFormatted, $receivedFormatted $totalFormatted")
+        }
     }
 
     private fun today(): Duration = Duration(
@@ -296,6 +304,27 @@ open class MainActivity : AppCompatActivity() {
 
         val total: Long = sent + received
         networkStats.close()
+
+        return arrayOf(sent, received, total)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun getDeviceWifiDataUsageForToday(): Array<Long> {
+
+        val today = today()
+
+        val networkStatsManager = getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
+        val bucket: NetworkStats.Bucket = networkStatsManager.querySummaryForDevice(
+            NetworkCapabilities.TRANSPORT_WIFI,
+            getSubscriberID(),
+            today.start,
+            today.end
+        )
+
+        val received: Long = bucket.rxBytes
+        val sent: Long = bucket.txBytes
+
+        val total: Long = sent + received
 
         return arrayOf(sent, received, total)
     }

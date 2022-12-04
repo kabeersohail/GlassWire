@@ -1,6 +1,7 @@
 package com.example.glasswire
 
 import android.Manifest.permission.READ_PHONE_STATE
+import android.annotation.SuppressLint
 import android.app.AppOpsManager
 import android.app.AppOpsManager.MODE_ALLOWED
 import android.app.AppOpsManager.OPSTR_GET_USAGE_STATS
@@ -330,6 +331,7 @@ open class MainActivity : AppCompatActivity() {
         return arrayOf(sent, received, total)
     }
 
+    @SuppressLint("QueryPermissionsNeeded")
     private fun getInstalledAppsCompat(): List<AppDataUsageModel>  = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             packageManager.getInstalledApplications(ApplicationInfoFlags.of(GET_META_DATA.toLong()))
         } else {
@@ -344,6 +346,7 @@ open class MainActivity : AppCompatActivity() {
      *
      * 1. https://stackoverflow.com/questions/47691310/why-is-using-getstring-to-get-device-identifiers-not-recommended
      */
+    @SuppressLint("HardwareIds")
     private fun getSubscriberID(): String? = if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) try {
         (getSystemService(TELEPHONY_SERVICE) as TelephonyManager).subscriberId
     } catch (e: Exception) {

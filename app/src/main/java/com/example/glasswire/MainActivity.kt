@@ -10,6 +10,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.pm.PackageManager.ApplicationInfoFlags
+import android.content.pm.PackageManager.GET_META_DATA
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
@@ -85,7 +87,7 @@ open class MainActivity : AppCompatActivity() {
 
         binding.getWifiUsage.setOnClickListener {
 
-            if(!checkForPermission(this)) {
+            if(!checkForDataUsagePermission(this)) {
                 handlePermission(it)
                 return@setOnClickListener
             }
@@ -107,7 +109,7 @@ open class MainActivity : AppCompatActivity() {
                             TimeFrame.ThisYear -> thisYear()
                         }
 
-                        getAllInstalledAppsData().forEach { app ->
+                        getInstalledAppsCompat().forEach { app ->
                             /**
                              * Deprecation useful links
                              *
@@ -126,7 +128,7 @@ open class MainActivity : AppCompatActivity() {
 
         binding.mobileDataUsageOfApps.setOnClickListener {
 
-            if(!checkForPermission(this)) {
+            if(!checkForDataUsagePermission(this)) {
                 handlePermission(it)
                 return@setOnClickListener
             }
@@ -140,7 +142,7 @@ open class MainActivity : AppCompatActivity() {
                     TimeFrame.ThisYear -> thisYear()
                 }
 
-                getAllInstalledAppsData().forEach { app ->
+                getInstalledAppsCompat().forEach { app ->
                     returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
                 }
             }
@@ -328,23 +330,14 @@ open class MainActivity : AppCompatActivity() {
         return arrayOf(sent, received, total)
     }
 
-    private fun getAllInstalledAppsData(): List<AppDataUsageModel> = packageManager.getInstalledApplications(PackageManager.GET_META_DATA).map { app ->
-        AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
-    }
-
-    /**
-     * Info for deprecation
-     *
-     * 1. https://stackoverflow.com/questions/62834292/list-of-apps-doesnt-populate-on-android-11-using-packagemanager
-     * 2. https://stackoverflow.com/questions/17504169/how-to-get-installed-applications-in-android-and-no-system-apps
-     * 3. https://developer.android.com/reference/android/content/pm/PackageManager#getInstalledApplications(android.content.pm.PackageManager.ApplicationInfoFlags)
-     * 4. https://developer.android.com/training/package-visibility
-     *
-     */
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun getAllInstalledAppsDataForAPI33(): List<AppDataUsageModel> = packageManager.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())).map { app ->
-        AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
-    }
+    private fun getInstalledAppsCompat(): List<AppDataUsageModel>  = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getInstalledApplications(ApplicationInfoFlags.of(GET_META_DATA.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getInstalledApplications(GET_META_DATA)
+        }.map { app ->
+            AppDataUsageModel(packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
+        }
 
     /**
      * Link describing the warning
@@ -372,11 +365,19 @@ open class MainActivity : AppCompatActivity() {
 
     /**
      * Checks if data usage permission is granted
+     *
+     *Addressing deprecation
+     *
+     * 1. https://developer.android.com/reference/android/app/AppOpsManager.html#checkOpNoThrow(java.lang.String,%20int,%20java.lang.String)
      */
-    private fun checkForPermission(context: Context): Boolean {
+    private fun checkForDataUsagePermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode =
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(OPSTR_GET_USAGE_STATS, myUid(), context.packageName)
+        } else {
+            @Suppress("DEPRECATION")
             appOps.checkOpNoThrow(OPSTR_GET_USAGE_STATS, myUid(), context.packageName)
+        }
         return mode == MODE_ALLOWED
     }
 

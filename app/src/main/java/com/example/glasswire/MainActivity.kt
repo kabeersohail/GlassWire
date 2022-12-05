@@ -82,6 +82,8 @@ open class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        var total: Float = 0F
+
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         val selectedTimeFrame: TimeFrame = TimeFrame.Today
@@ -119,12 +121,19 @@ open class MainActivity : AppCompatActivity() {
                              * 1. https://stackoverflow.com/questions/52816443/what-is-alternative-to-connectivitymanager-type-wifi-deprecated-in-android-p-api
                              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
                              */
-                            returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_WIFI)
+                            returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_WIFI).also { float ->
+                                total += float
+                            }
                         }
+
+                        Log.d("SOHAIL TOTAL", "$total")
+                        total = 0F
                     }
                 }
                 else -> requestPermissionLauncher.launch(READ_PHONE_STATE)
             }
+
+
         }
 
         binding.mobileDataUsageOfApps.setOnClickListener {
@@ -228,10 +237,11 @@ open class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int) {
+    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int): Float {
         val mData = if(type == NetworkCapabilities.TRANSPORT_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
         val formattedData = formatData(mData[0], mData[1])
         Log.d("SOHAIL BRO", "${formattedData.toList()} $uid")
+        return formattedData.last().split(" ").first().toFloat()
     }
 
     /**

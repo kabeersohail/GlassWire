@@ -121,7 +121,8 @@ open class MainActivity : AppCompatActivity() {
                              * 1. https://stackoverflow.com/questions/52816443/what-is-alternative-to-connectivitymanager-type-wifi-deprecated-in-android-p-api
                              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
                              */
-                            returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_WIFI).also { float ->
+
+                            returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI).also { float ->
                                 total += float
                             }
                         }
@@ -144,16 +145,10 @@ open class MainActivity : AppCompatActivity() {
             }
             CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = when(selectedTimeFrame) {
-                    TimeFrame.LastMonth -> lastMonth()
-                    TimeFrame.ThisMonth -> thisMonth()
-                    TimeFrame.Today -> today()
-                    TimeFrame.Yesterday -> yesterday()
-                    TimeFrame.ThisYear -> thisYear()
-                }
+                val (start, end) = Duration(1667710320000, 1670305920000)
 
                 getInstalledAppsCompat().forEach { app ->
-                    returnFormattedData(app.uid, start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
+                    returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp, start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
                 }
             }
         }
@@ -163,7 +158,7 @@ open class MainActivity : AppCompatActivity() {
 
             val (sentFormatted, receivedFormatted, totalFormatted) = formatData(sent, received)
 
-            Log.d("SOHAIL BRO", "$sentFormatted, $receivedFormatted $totalFormatted")
+            Log.d("DataUsage-->", "$sentFormatted, $receivedFormatted $totalFormatted")
         }
     }
 
@@ -237,10 +232,10 @@ open class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun returnFormattedData(uid: Int, startTime: Long, endTime: Long, type: Int): Float {
+    fun returnFormattedData(uid: Int, packageName: String, applicationName: String, isSystemApp: Boolean , startTime: Long, endTime: Long, type: Int): Float {
         val mData = if(type == NetworkCapabilities.TRANSPORT_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
         val formattedData = formatData(mData[0], mData[1])
-        Log.d("SOHAIL BRO", "${formattedData.toList()} $uid")
+        Log.d("DataUsage-->", "${formattedData.toList()} $uid $packageName $applicationName $isSystemApp")
         return formattedData.last().split(" ").first().toFloat()
     }
 

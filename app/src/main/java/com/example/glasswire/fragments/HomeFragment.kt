@@ -18,7 +18,6 @@ import android.os.RemoteException
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.findNavController
 import com.example.glasswire.R
@@ -43,9 +43,6 @@ import kotlinx.coroutines.withContext
 import java.text.ParseException
 import java.time.*
 import java.util.*
-import kotlin.math.floor
-import kotlin.math.ln
-import kotlin.math.pow
 
 class HomeFragment : Fragment() {
 
@@ -138,7 +135,15 @@ class HomeFragment : Fragment() {
                 val (start, end) = Duration(1667710320000, 1670305920000)
 
                 getInstalledAppsCompat().forEach { app ->
-                    returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp, start, end, NetworkCapabilities.TRANSPORT_CELLULAR, app.icon)
+                    returnFormattedData(
+                        app.uid,
+                        app.applicationName,
+                        app.isSystemApp,
+                        start,
+                        end,
+                        NetworkCapabilities.TRANSPORT_CELLULAR,
+                        app.icon
+                    )
                 }
             }
         }
@@ -236,7 +241,15 @@ class HomeFragment : Fragment() {
              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
              */
 
-            appUsageModelList.add(returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI, app.icon))
+            appUsageModelList.add(returnFormattedData(
+                app.uid,
+                app.applicationName,
+                app.isSystemApp,
+                start,
+                end,
+                NetworkCapabilities.TRANSPORT_WIFI,
+                app.icon
+            ))
         }
 
         return appUsageModelList
@@ -245,7 +258,6 @@ class HomeFragment : Fragment() {
     @RequiresApi(Build.VERSION_CODES.M)
     fun returnFormattedData(
         uid: Int,
-        packageName: String,
         applicationName: String,
         isSystemApp: Boolean,
         startTime: Long,
@@ -256,11 +268,6 @@ class HomeFragment : Fragment() {
         val (sent, received, total) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
             getAppWifiDataUsage(uid, startTime, endTime)
         } else getAppMobileDataUsage(uid, startTime, endTime)
-//        val (sent, received, total) = formatData(mData[0], mData[1])
-//        Log.d(
-//            "DataUsage-->",
-//            "[sent: $sent received: $received total: $total]  [uid: $uid] [packageName: $packageName] [applicationName: $applicationName] [isSystemApp: $isSystemApp]"
-//        )
 
         return AppUsageModel(applicationName, sent, icon, received, total, uid, isSystemApp)
     }
@@ -306,24 +313,6 @@ class HomeFragment : Fragment() {
         }
 
         return arrayOf(sentData, receivedData, totalData)
-    }
-
-    private fun formatDataNew(bytes: Double, decimalOrBinary: String): String {
-        if (bytes == 0.0) return "0 Bytes"
-
-        var k: Double = 0.0
-        var i: Double = 0.0
-
-        val dm = 2
-
-        val sizes: List<String> = listOf("Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-
-        k = if (decimalOrBinary == "binary") 1024.0 else 1000.0
-
-        i = floor(ln(bytes)) / ln(k)
-
-        return "${(bytes / k.pow(i))} + ${sizes[i.toInt()]}"
-
     }
 
     @RequiresApi(Build.VERSION_CODES.M)

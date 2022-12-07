@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.example.glasswire.databinding.ActivityMainBinding
 import com.example.glasswire.models.AppDataUsageModel
+import com.example.glasswire.models.AppUsageModel
 import com.example.glasswire.models.Duration
 import com.example.glasswire.states.TimeFrame
 import com.google.android.material.snackbar.Snackbar
@@ -85,8 +86,6 @@ open class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        var total: Float = 0F
-
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         val selectedTimeFrame: TimeFrame = TimeFrame.Today
@@ -115,23 +114,12 @@ open class MainActivity : AppCompatActivity() {
                             TimeFrame.ThisYear -> thisYear()
                         }
 
-                        getInstalledAppsCompat().forEach { app ->
-                            /**
-                             * Deprecation useful links
-                             *
-                             * TYPE_WIFI is deprecated so use NetworkCapabilities.TRANSPORT_WIFI
-                             *
-                             * 1. https://stackoverflow.com/questions/52816443/what-is-alternative-to-connectivitymanager-type-wifi-deprecated-in-android-p-api
-                             * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
-                             */
+                        val requiredList: List<AppUsageModel> = returnAppUsageModelList(start, end)
 
-                            returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI).also { float ->
-                                total += float
-                            }
+                        requiredList.forEach {
+                            Log.d( "DataUsage--->" ,"$it")
                         }
 
-                        Log.d("SOHAIL TOTAL", "$total")
-                        total = 0F
                     }
                 }
                 else -> requestPermissionLauncher.launch(READ_PHONE_STATE)
@@ -235,11 +223,45 @@ open class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun returnFormattedData(uid: Int, packageName: String, applicationName: String, isSystemApp: Boolean , startTime: Long, endTime: Long, type: Int): Float {
-        val mData = if(type == NetworkCapabilities.TRANSPORT_WIFI) { getAppWifiDataUsage(uid, startTime, endTime) } else getAppMobileDataUsage(uid, startTime, endTime)
-        val formattedData = formatData(mData[0], mData[1])
-        Log.d("DataUsage-->", "${formattedData.toList()} $uid $packageName $applicationName $isSystemApp")
-        return formattedData.last().split(" ").first().toFloat()
+    fun returnAppUsageModelList(start: Long, end: Long): List<AppUsageModel> {
+        val appUsageModelList: MutableList<AppUsageModel> = mutableListOf()
+
+        getInstalledAppsCompat().forEach { app ->
+            /**
+             * Deprecation useful links
+             *
+             * TYPE_WIFI is deprecated so use NetworkCapabilities.TRANSPORT_WIFI
+             *
+             * 1. https://stackoverflow.com/questions/52816443/what-is-alternative-to-connectivitymanager-type-wifi-deprecated-in-android-p-api
+             * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
+             */
+
+            appUsageModelList.add(returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI))
+        }
+
+        return appUsageModelList
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun returnFormattedData(
+        uid: Int,
+        packageName: String,
+        applicationName: String,
+        isSystemApp: Boolean,
+        startTime: Long,
+        endTime: Long,
+        type: Int
+    ): AppUsageModel {
+        val (sent, received, total) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
+            getAppWifiDataUsage(uid, startTime, endTime)
+        } else getAppMobileDataUsage(uid, startTime, endTime)
+//        val (sent, received, total) = formatData(mData[0], mData[1])
+//        Log.d(
+//            "DataUsage-->",
+//            "[sent: $sent received: $received total: $total]  [uid: $uid] [packageName: $packageName] [applicationName: $applicationName] [isSystemApp: $isSystemApp]"
+//        )
+
+        return AppUsageModel(packageName, sent, received, total, uid, isSystemApp)
     }
 
     /**

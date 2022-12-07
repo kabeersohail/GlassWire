@@ -38,6 +38,9 @@ import kotlinx.coroutines.launch
 import java.text.ParseException
 import java.time.*
 import java.util.*
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.pow
 
 /**
  * Useful stack over flow links
@@ -280,6 +283,24 @@ open class MainActivity : AppCompatActivity() {
         }
 
         return arrayOf(sentData, receivedData, totalData)
+    }
+
+    private fun formatDataNew(bytes: Double, decimalOrBinary: String): String {
+        if (bytes == 0.0) return "0 Bytes"
+
+        var k: Double = 0.0
+        var i: Double = 0.0
+
+        val dm = 2
+
+        val sizes: List<String> = listOf("Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+        k = if (decimalOrBinary == "binary") 1024.0 else 1000.0
+
+        i = floor(ln(bytes)) / ln(k)
+
+        return "${(bytes / k.pow(i))} + ${sizes[i.toInt()]}"
+
     }
 
     @RequiresApi(Build.VERSION_CODES.M)

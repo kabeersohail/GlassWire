@@ -1,5 +1,8 @@
 package com.example.glasswire
 
+import android.os.Build
+import androidx.annotation.RequiresApi
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.text.DateFormat
@@ -9,6 +12,9 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.*
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.pow
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -133,6 +139,93 @@ class ExampleUnitTest {
 
     private fun localDateTimeToDate(localDateTime: LocalDateTime): Date? {
         return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+    }
+
+
+    /**
+     *
+     *
+     *
+     *
+     *
+     *
+     *
+     */
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getPrev30DaysTime() : Long {
+        val today = Date()
+        val cal: Calendar = GregorianCalendar()
+        cal.time = today
+        cal.add(Calendar.DAY_OF_MONTH, -30)
+        val today30: Date = cal.time
+        return atStartOfDayX(today30)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun atStartOfDayX(date: Date): Long {
+        val localDateTime = dateToLocalDateTimeX(date)
+        val startOfDay = localDateTime.with(LocalTime.MIN)
+        return localDateTimeToDateX(startOfDay).toInstant().toEpochMilli()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun localDateTimeToDateX(localDateTime: LocalDateTime): Date {
+        return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun dateToLocalDateTimeX(date: Date): LocalDateTime {
+        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
+    }
+
+    @Test
+    fun testFormatData() {
+        val actualResult = formatData(557685071)
+        assertEquals(1, actualResult)
+    }
+
+    @Test
+    fun testFormatDataNew() {
+        val actualResult = formatDataNew(557685071, "binary")
+        assertEquals(1, actualResult)
+    }
+
+    private fun formatDataNew(bytes: Long, decimalOrBinary: String): String {
+        if (bytes == 0L) return "0 Bytes"
+
+        var k: Long = 0L
+        var i: Long = 0L
+
+        val dm = 2
+
+        val sizes: List<String> = listOf("Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+
+        k = if (decimalOrBinary == "binary") 1024 else 1000
+
+        i = (floor(ln(bytes.toDouble())) / ln(k.toDouble())).toLong()
+
+        return "${(bytes / k.toDouble().pow(i.toDouble()))} + ${sizes[i.toInt()]}"
+
+    }
+
+    private fun formatData(total: Long): String {
+        val totalBytes = total / 1024f
+
+        val totalMB = totalBytes / 1024f
+
+        val totalGB: Float
+
+        val totalData: String
+        if (totalMB > 1024) {
+            totalGB = totalMB / 1024f
+            totalData = String.format("%.2f", totalGB) + " GB"
+        } else {
+            totalData = String.format("%.2f", totalMB) + " MB"
+        }
+
+        return totalData
     }
 
 }

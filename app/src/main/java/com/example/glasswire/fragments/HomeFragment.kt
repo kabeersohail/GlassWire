@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
@@ -137,7 +138,7 @@ class HomeFragment : Fragment() {
                 val (start, end) = Duration(1667710320000, 1670305920000)
 
                 getInstalledAppsCompat().forEach { app ->
-                    returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp, start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
+                    returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp, start, end, NetworkCapabilities.TRANSPORT_CELLULAR, app.icon)
                 }
             }
         }
@@ -235,7 +236,7 @@ class HomeFragment : Fragment() {
              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
              */
 
-            appUsageModelList.add(returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI))
+            appUsageModelList.add(returnFormattedData(app.uid, app.packageName, app.applicationName,app.isSystemApp , start, end, NetworkCapabilities.TRANSPORT_WIFI, app.icon))
         }
 
         return appUsageModelList
@@ -249,7 +250,8 @@ class HomeFragment : Fragment() {
         isSystemApp: Boolean,
         startTime: Long,
         endTime: Long,
-        type: Int
+        type: Int,
+        icon: Drawable
     ): AppUsageModel {
         val (sent, received, total) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
             getAppWifiDataUsage(uid, startTime, endTime)
@@ -260,7 +262,7 @@ class HomeFragment : Fragment() {
 //            "[sent: $sent received: $received total: $total]  [uid: $uid] [packageName: $packageName] [applicationName: $applicationName] [isSystemApp: $isSystemApp]"
 //        )
 
-        return AppUsageModel(applicationName, sent, received, total, uid, isSystemApp)
+        return AppUsageModel(applicationName, sent, icon, received, total, uid, isSystemApp)
     }
 
     /**
@@ -416,7 +418,7 @@ class HomeFragment : Fragment() {
         @Suppress("DEPRECATION")
         requireContext().packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
     }.map { app ->
-        AppDataUsageModel(requireContext().packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1)
+        AppDataUsageModel(requireContext().packageManager.getApplicationLabel(app).toString(), app.packageName, app.uid, (app.flags and ApplicationInfo.FLAG_SYSTEM) == 1, requireContext().packageManager.getApplicationIcon(app.packageName))
     }
 
     /**

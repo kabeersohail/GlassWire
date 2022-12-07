@@ -14,9 +14,9 @@ class AppDataUsageAdapter(private val list: List<AppUsageModel>): RecyclerView.A
     class AppUsageViewHolder(appView: View) : RecyclerView.ViewHolder(appView) {
         val icon: ImageView = appView.findViewById(R.id.app_icon)
         val appName: TextView = appView.findViewById(R.id.app_name)
-//        val sent: TextView = appView.findViewById(R.id.sent)
-//        val received: TextView = appView.findViewById(R.id.received)
-//        val total: TextView = appView.findViewById(R.id.total)
+        val sent: TextView = appView.findViewById(R.id.sent)
+        val received: TextView = appView.findViewById(R.id.received)
+        val total: TextView = appView.findViewById(R.id.total)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppUsageViewHolder {
@@ -30,10 +30,10 @@ class AppDataUsageAdapter(private val list: List<AppUsageModel>): RecyclerView.A
         val appViewModel = list[position]
 
         holder.appName.text = appViewModel.applicationName
-//        holder.sent.text = appViewModel.sent.toString()
-//        holder.received.text = appViewModel.received.toString()
-//        holder.total.text = appViewModel.total.toString()
-
+        holder.sent.text = appViewModel.sent.toString()
+        holder.received.text = appViewModel.received.toString()
+        holder.total.text = appViewModel.total.toString()
+        holder.icon.setImageDrawable(appViewModel.icon)
     }
 
     override fun getItemCount(): Int = list.size

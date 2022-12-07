@@ -18,10 +18,9 @@
 
         <ImageView
             android:id="@+id/app_icon"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
+            android:layout_width="155dp"
+            android:layout_height="155dp"
             android:layout_margin="5dp"
-            android:background="@drawable/lite_gray_circle"
             android:contentDescription="@string/app_icon"
             android:padding="5dp"
             android:src="@drawable/lite_gray_circle"
@@ -30,6 +29,67 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_weight="2" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/data_consumption_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@id/app_name"
+            app:layout_constraintTop_toBottomOf="@id/app_name">
+
+            <TextView
+                android:id="@+id/sent"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:background="@drawable/lite_gray_rectangle"
+                android:gravity="center"
+                android:padding="5dp"
+                android:singleLine="true"
+                android:text="@string/sent"
+                android:textColor="@color/gray_200"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@id/total"
+                app:layout_constraintEnd_toStartOf="@id/received"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/received"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:background="@drawable/lite_gray_rectangle"
+                android:gravity="center"
+                android:padding="5dp"
+                android:singleLine="true"
+                android:text="@string/received"
+                android:textColor="@color/gray_200"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toTopOf="@id/total"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/sent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/total"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:background="@drawable/lite_gray_rectangle"
+                android:gravity="center"
+                android:padding="5dp"
+                android:singleLine="true"
+                android:text="@string/total"
+                android:textColor="@color/gray_200"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <TextView
             android:id="@+id/app_name"
@@ -43,7 +103,7 @@
             android:text="@string/dummy_title"
             android:textColor="@color/gray_200"
             android:textSize="14sp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/data_consumption_layout"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/app_icon"
             app:layout_constraintTop_toTopOf="parent" />

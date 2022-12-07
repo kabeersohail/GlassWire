@@ -6,4 +6,9 @@
     <string name="wifi_usage">WIFI usage</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="app_icon">App Icon</string>
+    <string name="dummy_title">Dummy Title</string>
+    <string name="sent">Sent</string>
+    <string name="received">Received</string>
+    <string name="total">Total</string>
 </resources>

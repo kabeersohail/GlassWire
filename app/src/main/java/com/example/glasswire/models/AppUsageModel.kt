@@ -1,7 +1,7 @@
 package com.example.glasswire.models
 
 data class AppUsageModel(
-    val packageName: String,
+    val applicationName: String,
     val sent: Long,
     val received: Long,
     val total: Long,

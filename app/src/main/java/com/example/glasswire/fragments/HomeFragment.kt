@@ -25,15 +25,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
+import androidx.navigation.findNavController
+import com.example.glasswire.R
 import com.example.glasswire.databinding.FragmentHomeBinding
 import com.example.glasswire.models.AppDataUsageModel
 import com.example.glasswire.models.AppUsageModel
 import com.example.glasswire.models.Duration
 import com.example.glasswire.states.TimeFrame
+import com.example.glasswire.viewmodels.SharedViewModel
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.ParseException
 import java.time.*
 import java.util.*
@@ -44,6 +49,8 @@ import kotlin.math.pow
 class HomeFragment : Fragment() {
 
     private lateinit var fragmentHomeBinding: FragmentHomeBinding
+
+    private val sharedViewModel: SharedViewModel by activityViewModels()
 
     /**
      * Room for improvements
@@ -80,10 +87,10 @@ class HomeFragment : Fragment() {
 
         val selectedTimeFrame: TimeFrame = TimeFrame.Today
 
-        fragmentHomeBinding.getWifiUsage.setOnClickListener {
+        fragmentHomeBinding.getWifiUsage.setOnClickListener { wifiUsageButton ->
 
             if(!checkForDataUsagePermission(requireContext())) {
-                handlePermission(it)
+                handlePermission(wifiUsageButton)
                 return@setOnClickListener
             }
 
@@ -106,10 +113,11 @@ class HomeFragment : Fragment() {
 
                         val requiredList: List<AppUsageModel> = returnAppUsageModelList(start, end)
 
-                        requiredList.forEach {
-                            Log.d( "DataUsage--->" ,"$it")
-                        }
+                        sharedViewModel.setAppDataUsageList(requiredList)
 
+                        withContext(Dispatchers.Main) {
+                            wifiUsageButton.findNavController().navigate(R.id.action_homeFragment_to_recyclerViewFragment)
+                        }
                     }
                 }
                 else -> requestPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
@@ -252,7 +260,7 @@ class HomeFragment : Fragment() {
 //            "[sent: $sent received: $received total: $total]  [uid: $uid] [packageName: $packageName] [applicationName: $applicationName] [isSystemApp: $isSystemApp]"
 //        )
 
-        return AppUsageModel(packageName, sent, received, total, uid, isSystemApp)
+        return AppUsageModel(applicationName, sent, received, total, uid, isSystemApp)
     }
 
     /**

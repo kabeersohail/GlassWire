@@ -265,11 +265,13 @@ class HomeFragment : Fragment() {
         type: Int,
         icon: Drawable
     ): AppUsageModel {
-        val (sent, received, total) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
+        val (sent, received, _) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
             getAppWifiDataUsage(uid, startTime, endTime)
         } else getAppMobileDataUsage(uid, startTime, endTime)
 
-        return AppUsageModel(applicationName, sent, icon, received, total, uid, isSystemApp)
+        val (formattedSent, formattedReceived, formattedTotal) = formatData(sent, received)
+
+        return AppUsageModel(applicationName, formattedSent, icon, formattedReceived, formattedTotal, uid, isSystemApp)
     }
 
     /**

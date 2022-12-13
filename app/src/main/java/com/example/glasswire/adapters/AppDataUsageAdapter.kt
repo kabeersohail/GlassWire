@@ -29,7 +29,7 @@ class AppDataUsageAdapter(private val list: List<AppUsageModel>): RecyclerView.A
     override fun onBindViewHolder(holder: AppUsageViewHolder, position: Int) {
         val appViewModel = list[position]
 
-        holder.appName.text = appViewModel.applicationName
+        holder.appName.text = appViewModel.packageName
         holder.sent.text = appViewModel.sent.toString()
         holder.received.text = appViewModel.received.toString()
         holder.total.text = appViewModel.total.toString()

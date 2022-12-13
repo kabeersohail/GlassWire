@@ -109,7 +109,7 @@ class HomeFragment : Fragment() {
                             TimeFrame.ThisYear -> thisYear()
                         }
 
-                        val requiredList: List<AppUsageModel> = returnAppUsageModelList(start, end)
+                        val requiredList: List<AppUsageModel> = returnAppUsageModelList(start, end, NetworkCapabilities.TRANSPORT_WIFI)
 
                         sharedViewModel.setAppDataUsageList(requiredList)
 
@@ -124,27 +124,44 @@ class HomeFragment : Fragment() {
 
         }
 
-        fragmentHomeBinding.mobileDataUsageOfApps.setOnClickListener {
+        fragmentHomeBinding.mobileDataUsageOfApps.setOnClickListener { mobileDataUsageButton ->
 
             if(!checkForDataUsagePermission(requireContext())) {
-                handlePermission(it)
+                handlePermission(mobileDataUsageButton)
                 return@setOnClickListener
             }
-            CoroutineScope(Dispatchers.IO).launch {
 
-                val (start, end) = Duration(1667710320000, 1670305920000)
+            /**
+             * Room for improvements
+             *
+             * 1. https://developer.android.com/training/permissions/requesting.html
+             */
+            when (PackageManager.PERMISSION_GRANTED) {
+                ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_PHONE_STATE) -> {
+                    CoroutineScope(Dispatchers.IO).launch {
 
-                getInstalledAppsCompat().forEach { app ->
-                    returnFormattedData(
-                        app.uid,
-                        app.applicationName,
-                        app.isSystemApp,
-                        start,
-                        end,
-                        NetworkCapabilities.TRANSPORT_CELLULAR,
-                        app.icon
-                    )
+                        val (start, end) = when(selectedTimeFrame) {
+                            TimeFrame.LastMonth -> lastMonth()
+                            TimeFrame.ThisMonth -> thisMonth()
+                            TimeFrame.Today -> today()
+                            TimeFrame.Yesterday -> yesterday()
+                            TimeFrame.ThisYear -> thisYear()
+                        }
+
+                        val requiredList: List<AppUsageModel> = returnAppUsageModelList(start, end, NetworkCapabilities.TRANSPORT_CELLULAR)
+
+                        sharedViewModel.setAppDataUsageList(requiredList)
+
+                        requiredList.forEach {
+                            Log.d("SOHAIL BRO", "$it")
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            mobileDataUsageButton.findNavController().navigate(R.id.action_homeFragment_to_recyclerViewFragment)
+                        }
+                    }
                 }
+                else -> requestPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
             }
         }
 
@@ -228,7 +245,7 @@ class HomeFragment : Fragment() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun returnAppUsageModelList(start: Long, end: Long): List<AppUsageModel> {
+    fun returnAppUsageModelList(start: Long, end: Long, networkType: Int): List<AppUsageModel> {
         val appUsageModelList: MutableList<AppUsageModel> = mutableListOf()
 
         getInstalledAppsCompat().forEach { app ->
@@ -241,16 +258,20 @@ class HomeFragment : Fragment() {
              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
              */
 
-            appUsageModelList.add(returnFormattedData(
+            returnFormattedData(
                 app.uid,
-                app.applicationName,
+                app.packageName,
                 app.isSystemApp,
                 start,
                 end,
-                NetworkCapabilities.TRANSPORT_WIFI,
+                networkType,
                 app.icon
-            ))
+            )?.let {
+                appUsageModelList.add(it)
+            }
         }
+
+        appUsageModelList.sortByDescending { it.total }
 
         return appUsageModelList
     }
@@ -264,10 +285,14 @@ class HomeFragment : Fragment() {
         endTime: Long,
         type: Int,
         icon: Drawable
-    ): AppUsageModel {
-        val (sent, received, _) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
+    ): AppUsageModel? {
+        val (sent, received, total) = if (type == NetworkCapabilities.TRANSPORT_WIFI) {
             getAppWifiDataUsage(uid, startTime, endTime)
         } else getAppMobileDataUsage(uid, startTime, endTime)
+
+        if(total <= 0) {
+            return null
+        }
 
         val (formattedSent, formattedReceived, formattedTotal) = formatData(sent, received)
 

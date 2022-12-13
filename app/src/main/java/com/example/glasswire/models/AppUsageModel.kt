@@ -3,7 +3,7 @@ package com.example.glasswire.models
 import android.graphics.drawable.Drawable
 
 data class AppUsageModel(
-    val applicationName: String,
+    val packageName: String,
     val sent: String,
     val icon: Drawable,
     val received: String,

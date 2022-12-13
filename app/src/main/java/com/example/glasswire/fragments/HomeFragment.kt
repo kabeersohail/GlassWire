@@ -44,6 +44,11 @@ import java.text.ParseException
 import java.time.*
 import java.util.*
 
+sealed interface DataFormat {
+    object Decimal: DataFormat
+    object Binary: DataFormat
+}
+
 class HomeFragment : Fragment() {
 
     private lateinit var fragmentHomeBinding: FragmentHomeBinding
@@ -168,7 +173,7 @@ class HomeFragment : Fragment() {
         fragmentHomeBinding.wifiUsage.setOnClickListener {
             val (sent, received, _) = getDeviceWifiDataUsageForToday()
 
-            val (sentFormatted, receivedFormatted, totalFormatted) = formatData(sent, received)
+            val (sentFormatted, receivedFormatted, totalFormatted) = formatData(sent, received, DataFormat.Binary)
 
             Log.d("DataUsage-->", "$sentFormatted, $receivedFormatted $totalFormatted")
         }
@@ -294,7 +299,7 @@ class HomeFragment : Fragment() {
             return null
         }
 
-        val (formattedSent, formattedReceived, formattedTotal) = formatData(sent, received)
+        val (formattedSent, formattedReceived, formattedTotal) = formatData(sent, received, DataFormat.Binary)
 
         return AppUsageModel(applicationName, formattedSent, icon, formattedReceived, formattedTotal, uid, isSystemApp)
     }
@@ -302,38 +307,44 @@ class HomeFragment : Fragment() {
     /**
      * Formats the data
      */
-    private fun formatData(sent: Long, received: Long): Array<String> {
-        val totalBytes = (sent + received) / 1024f
-        val sentBytes = sent / 1024f
-        val receivedBytes = received / 1024f
+    private fun formatData(sent: Long, received: Long, dataFormat: DataFormat): Array<String> {
 
-        val totalMB = totalBytes / 1024f
+        val divisor: Float = when(dataFormat) {
+            DataFormat.Binary -> 1024f
+            DataFormat.Decimal -> 1000f
+        }
+
+        val totalBytes = (sent + received) / divisor
+        val sentBytes = sent / divisor
+        val receivedBytes = received / divisor
+
+        val totalMB = totalBytes / divisor
 
         val totalGB: Float
         val sentGB: Float
         val receivedGB: Float
 
-        val sentMB: Float = sentBytes / 1024f
-        val receivedMB: Float = receivedBytes / 1024f
+        val sentMB: Float = sentBytes / divisor
+        val receivedMB: Float = receivedBytes / divisor
 
         val sentData: String
         val receivedData: String
         val totalData: String
-        if (totalMB > 1024) {
-            totalGB = totalMB / 1024f
+        if (totalMB > divisor) {
+            totalGB = totalMB / divisor
             totalData = String.format("%.2f", totalGB) + " GB"
         } else {
             totalData = String.format("%.2f", totalMB) + " MB"
         }
 
-        if (sentMB > 1024) {
-            sentGB = sentMB / 1024f
+        if (sentMB > divisor) {
+            sentGB = sentMB / divisor
             sentData = String.format("%.2f", sentGB) + " GB"
         } else {
             sentData = String.format("%.2f", sentMB) + " MB"
         }
-        if (receivedMB > 1024) {
-            receivedGB = receivedMB / 1024f
+        if (receivedMB > divisor) {
+            receivedGB = receivedMB / divisor
             receivedData = String.format("%.2f", receivedGB) + " GB"
         } else {
             receivedData = String.format("%.2f", receivedMB) + " MB"

@@ -4,10 +4,10 @@ import android.graphics.drawable.Drawable
 
 data class AppUsageModel(
     val packageName: String,
-    val sent: String,
+    val sent: Long,
     val icon: Drawable,
-    val received: String,
-    val total: String,
+    val received: Long,
+    val total: Long,
     val uid: Int,
     val systemApp: Boolean
 )

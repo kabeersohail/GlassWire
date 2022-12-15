@@ -2,6 +2,7 @@ package com.example.glasswire
 
 import org.junit.Assert
 import org.junit.Test
+import java.text.SimpleDateFormat
 import java.time.*
 import java.util.*
 
@@ -69,6 +70,15 @@ class Knowledge {
 
     private fun localDateTimeToDate(localDateTime: LocalDateTime): Date {
         return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant())
+    }
+
+    fun main() {
+        val dateFormat = SimpleDateFormat("dd-MMM-yy hh.mm.ss", Locale.getDefault())
+        val formattedDate = dateFormat.format(Date())
+        println(formattedDate)
+
+        val date = SimpleDateFormat("dd-MMM-yy hh.mm.ss").parse(formattedDate)
+        println(date.time)
     }
 
 }

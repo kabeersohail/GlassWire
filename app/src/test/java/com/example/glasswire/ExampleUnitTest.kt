@@ -2,15 +2,11 @@ package com.example.glasswire
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
+import java.time.*
 import java.util.*
 import kotlin.math.floor
 import kotlin.math.ln

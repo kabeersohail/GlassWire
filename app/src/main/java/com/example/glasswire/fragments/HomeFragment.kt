@@ -88,7 +88,7 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val selectedTimeFrame: TimeFrame = TimeFrame.Today
+        val selectedTimeFrame: TimeFrame = TimeFrame.ThisYear
 
         fragmentHomeBinding.getWifiUsage.setOnClickListener { wifiUsageButton ->
 

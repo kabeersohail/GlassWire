@@ -4,6 +4,7 @@ import android.graphics.drawable.Drawable
 
 data class AppUsageModel(
     val packageName: String,
+    val applicationName: String,
     val sent: Long,
     val icon: Drawable,
     val received: Long,

@@ -18,6 +18,7 @@ class AppDataUsageAdapter(private val list: List<AppUsageModel>): RecyclerView.A
         val sent: TextView = appView.findViewById(R.id.sent)
         val received: TextView = appView.findViewById(R.id.received)
         val total: TextView = appView.findViewById(R.id.total)
+        val isSystemApp: TextView = appView.findViewById(R.id.is_system_app)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppUsageViewHolder {
@@ -38,6 +39,7 @@ class AppDataUsageAdapter(private val list: List<AppUsageModel>): RecyclerView.A
             holder.received.text = received
             holder.total.text = total
             holder.icon.setImageDrawable(appViewModel.icon)
+            holder.isSystemApp.text = appViewModel.systemApp.toString()
         }
     }
 

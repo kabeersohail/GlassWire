@@ -36,7 +36,13 @@ class RecyclerViewFragment : Fragment() {
 
 
         sharedViewModel.appDataUsageList.observe(viewLifecycleOwner) { requiredList ->
-            appDataUsageRecyclerView.adapter = AppDataUsageAdapter(requiredList)
+
+            requiredList.forEach {
+                Log.d("SOHAIL BRO -->", "$it")
+            }
+
+
+            appDataUsageRecyclerView.adapter = AppDataUsageAdapter(requiredList.filter { it.systemApp })
         }
     }
 }

@@ -259,16 +259,22 @@ class HomeFragment : Fragment() {
              * 2. https://stackoverflow.com/questions/56353916/connectivitymanager-type-wifi-is-showing-deprecated-in-code-i-had-use-network-ca
              */
 
-            returnFormattedData(
-                app.uid,
-                app.packageName,
-                app.isSystemApp,
-                start,
-                end,
-                networkType,
-                app.icon
-            )?.let {
-                appUsageModelList.add(it)
+
+            if(!appUsageModelList.map { it.uid }.contains(app.uid)) {
+                returnFormattedData(
+                    app.uid,
+                    app.packageName,
+                    app.applicationName,
+                    app.isSystemApp,
+                    start,
+                    end,
+                    networkType,
+                    app.icon
+                )?.let {
+                    appUsageModelList.add(it)
+                }
+            } else {
+                Log.d("SOHAIL BRO -->", "Data has already been calculated")
             }
         }
 
@@ -280,6 +286,7 @@ class HomeFragment : Fragment() {
     @RequiresApi(Build.VERSION_CODES.M)
     fun returnFormattedData(
         uid: Int,
+        packageName: String,
         applicationName: String,
         isSystemApp: Boolean,
         startTime: Long,
@@ -295,7 +302,7 @@ class HomeFragment : Fragment() {
             return null
         }
 
-        return AppUsageModel(applicationName, sent, icon, received, total, uid, isSystemApp)
+        return AppUsageModel(packageName, applicationName, sent, icon, received, total, uid, isSystemApp)
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
